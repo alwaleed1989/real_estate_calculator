@@ -36,7 +36,7 @@ class _setting_screenState extends State<setting_screen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     // Load the saved values, providing defaults if they don't exist
-    final savedVat = prefs.getDouble('vat_percentage') ?? 15.0;
+    final savedVat = prefs.getDouble('vat_percentage') ?? 5.0;
     final savedPursuitFee = prefs.getDouble('pursuit_fee_percentage') ?? 2.5;
     final isExempt = prefs.getBool('is_tax_exempt') ?? false;
 

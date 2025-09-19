@@ -30,6 +30,14 @@ class calculator_methods {
     return amount+vat+fee;
   }
 
+  double without_VAT()
+  {
+    calculator_methods cal = new calculator_methods(amount);
+    double fee =cal.Fees(2.5);
+    print("----------------");
+    print(amount+fee);
+    return amount+fee;
+  }
 
 
 }
