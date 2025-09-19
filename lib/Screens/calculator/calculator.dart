@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // 1. قم باستيراد مكتبة intl
+import 'package:intl/intl.dart';
 import 'calculator_methods.dart';
 import 'calculator_widget.dart';
 
@@ -12,7 +12,11 @@ class calculatorScreen extends StatefulWidget {
 
 class _calculatorScreenState extends State<calculatorScreen> {
   final TextEditingController _amountController = TextEditingController();
-  String _resultText = "النتيجة ستظهر هنا";
+
+  // 1. أنشئ متغيرات حالة لكل قيمة تريد عرضها
+  String _totalResultText = "";
+  String _vatText = "";
+  String _feeResult = "";
 
   @override
   void dispose() {
@@ -20,34 +24,52 @@ class _calculatorScreenState extends State<calculatorScreen> {
     super.dispose();
   }
 
+  // 2. قم بإجراء جميع الحسابات هنا
   void _calculate() {
     final amount = double.tryParse(_amountController.text);
 
     if (amount != null) {
-      // افترض أن هذه الدالة تُرجع رقماً مثل double
-      final result = calculator_methods(amount).calculate_btn();
+      // افترض أن الكلاس calculator_methods يحتوي على دوال لحساب كل قيمة
+      final calc = calculator_methods(amount);
+      final totalResult = calc.calculate_btn(); // لحساب الإجمالي
+      final vatResult = calc.VAT(15);
+      final feeResult = calc.Fees(2.5);
 
-      // --- هذا هو التصحيح والتحسين ---
-      // 2. أنشئ أداة تنسيق للعملة بالريال السعودي
+      // أداة تنسيق العملة
       final currencyFormatter = NumberFormat.currency(
-        locale: 'ar_SA', // استخدم اللغة العربية للمملكة العربية السعودية
-        symbol: 'ر.س',   // رمز العملة
-        decimalDigits: 2, // عدد الخانات العشرية
+        locale: 'ar_SA',
+        symbol: 'ر.س',
+        decimalDigits: 2,
       );
 
-      // 3. قم بتنسيق النتيجة الرقمية إلى نص
-      final formattedResult = currencyFormatter.format(result);
-      // ------------------------------------
-
+      // استخدم setState لتحديث جميع متغيرات الحالة مرة واحدة
       setState(() {
-        // 4. قم بتحديث متغير الحالة بالنص المنسق
-        _resultText = formattedResult;
+        _totalResultText = "الإجمالي: ${currencyFormatter.format(totalResult)}";
+        _vatText = "الضريبة (15%): ${currencyFormatter.format(vatResult)}";
+        _feeResult = "السعي (2.5%): ${currencyFormatter.format(feeResult)}";
+
+
       });
     } else {
-      setState(() {
-        _resultText = "خطأ: الرجاء إدخال رقم صحيح";
-      });
+      // في حالة الإدخال الخاطئ، قم بمسح النتائج
+      _clear();
+
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text("الرجاء إدخال رقم صحيح")),
+      // );
+      Error_Dialog(context);
+
     }
+  }
+
+  // دالة لمسح الحقول والنتائج
+  void _clear() {
+    _amountController.clear();
+    setState(() {
+      _totalResultText = "";
+      _vatText = "";
+      _feeResult = "";
+    });
   }
 
   @override
@@ -56,40 +78,69 @@ class _calculatorScreenState extends State<calculatorScreen> {
       appBar: AppBar(
         title: const Text('حاسبة العقار'),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.settings),
-          ),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.settings)),
         ],
       ),
+      // تم نقل الأزرار إلى هنا لتكون في مكانها الصحيح
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: ElevatedButton.icon(
-          onPressed: _calculate,
-          icon: const Icon(Icons.calculate),
-          label: const Text("احسب"),
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 50),
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 22),
-            Text(
-              _resultText,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            SizedBox(height: 200,),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _calculate,
+                icon: const Icon(Icons.calculate),
+                label: const Text("احسب"),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
             ),
-            const Spacer(),
-            Amount_Fields(_amountController),
-            const SizedBox(height: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _clear,
+                icon: const Icon(Icons.clear),
+                label: const Text("مسح"),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _totalResultText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _vatText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, color: Colors.black54),
+          ),
+          Text(
+            _feeResult,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, color: Colors.black54),
+          ),
+          const Spacer(),
+          Amount_Fields(_amountController),
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }
 }
+

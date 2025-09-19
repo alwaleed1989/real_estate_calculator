@@ -28,6 +28,8 @@ class calculator_methods {
     return amount+vat+fee;
   }
 
+
+
 }
 
 
