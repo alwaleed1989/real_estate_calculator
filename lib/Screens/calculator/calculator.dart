@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:real_estate_calculator/Screens/setting/setting.dart';
 import 'calculator_methods.dart';
 import 'calculator_widget.dart';
 
@@ -54,9 +55,6 @@ class _calculatorScreenState extends State<calculatorScreen> {
       // في حالة الإدخال الخاطئ، قم بمسح النتائج
       _clear();
 
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(content: Text("الرجاء إدخال رقم صحيح")),
-      // );
       Error_Dialog(context);
 
     }
@@ -78,7 +76,10 @@ class _calculatorScreenState extends State<calculatorScreen> {
       appBar: AppBar(
         title: const Text('حاسبة العقار'),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.settings)),
+          IconButton(onPressed: () {
+            showModalBottomSheet(context: context , builder: (context) => setting_screen(),);
+
+          }, icon: const Icon(Icons.settings)),
         ],
       ),
       // تم نقل الأزرار إلى هنا لتكون في مكانها الصحيح
