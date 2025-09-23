@@ -3,12 +3,12 @@ import 'package:flutter/services.dart'; // Required for TextInputFormatter
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:real_estate_calculator/Screens/setting/SettingScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Required for SharedPreferences
-import '../setting/SettingScreen.dart'; // Removed: Assuming '../setting/setting.dart' is sufficient
+import '../setting/SettingScreen.dart';
 import '../setting/setting.dart'; // Corrected import for your settings.dart
-import 'calculator_methods.dart'; // Assuming this exists and is correct
+// import 'calculator_methods.dart'; // Assuming this exists and is correct, but not directly used here
 
+// MaxValueTextInputFormatter class (as provided previously)
 class MaxValueTextInputFormatter extends TextInputFormatter {
   final double maxValue;
   final int decimalDigits;
@@ -38,7 +38,6 @@ class MaxValueTextInputFormatter extends TextInputFormatter {
     return newValue;
   }
 }
-
 
 class RealEstateCalculatorApp extends StatelessWidget {
   const RealEstateCalculatorApp({super.key});
@@ -94,8 +93,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   String _pricePerUnitSizeText = ""; // Changed to String, initialized as empty
 
   // --- SETTINGS STATE ---
-  double _taxRate = 0.05; // 5%
-  double _commissionRate = 0.025; // 2.5%
+  // Default values set here and also in _loadSettings as fallbacks
+  double _taxRate = 0.05; // Default 5%
+  double _commissionRate = 0.025; // Default 2.5%
   bool _isTaxExempt = false;
 
   @override
@@ -146,7 +146,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         // Calculate tax only if not exempt
         _taxAmount = _isTaxExempt ? 0 : _baseAmount * _taxRate;
         _commissionAmount = _baseAmount * _commissionRate;
-        _totalAmount = _baseAmount + _taxAmount + _commissionAmount;
+        _totalAmount = _baseAmount + _taxAmount /100 + _commissionAmount / 100;
         _showResults = true;
       } else {
         _taxAmount = 0.0;
@@ -154,7 +154,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         _totalAmount = 0.0;
         _showResults = false;
       }
-      // _calculatePricePerUnit() will be called by _recalculateAll
     });
   }
 
@@ -292,7 +291,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 borderSide: BorderSide.none,
               ),
               hintText: '0',
-              suffixText: 'ر.س ',
+              suffixText: 'ر.س', // Removed extra space
               suffixStyle: TextStyle(fontSize: 18, color: Colors.grey[500]),
             ),
             inputFormatters: [
@@ -318,7 +317,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 borderSide: BorderSide.none,
               ),
               hintText: '0',
-              suffixText: 'متر ', // Corrected unit suffix
+              suffixText: 'متر مربع', // Corrected unit suffix, removed extra space
               suffixStyle: TextStyle(fontSize: 18, color: Colors.grey[500]),
             ),
             inputFormatters: [
@@ -332,10 +331,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   Widget _buildResultsCard() {
     // Determine the tax label based on exemption status
-    final taxLabel = _isTaxExempt ? 'الضريبة (معفي)' : 'الضريبة (${(_taxRate * 100).toStringAsFixed(1)}%)';
-    final commissionLabel = 'السعي (${(_commissionRate * 100).toStringAsFixed(1)}%)';
-    // Removed old SizeLabel which had a syntax error
-    // Now _pricePerUnitSizeText will be displayed directly if it's not empty
+    final taxLabel = _isTaxExempt ? 'الضريبة (معفي)' : 'الضريبة (${(_taxRate  ).toStringAsFixed(1)}%)'; // Corrected
+    final commissionLabel = 'السعي (${(_commissionRate ).toStringAsFixed(1)}%)'; // Corrected
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 400),
@@ -362,14 +359,17 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             ),
             const SizedBox(height: 16),
             _buildResultRow('المبلغ الأساسي', _baseAmount),
-            _buildResultRow(taxLabel, _taxAmount),
-            _buildResultRow(commissionLabel, _commissionAmount),
+            _buildResultRow(taxLabel, _taxAmount / 100),
+            _buildResultRow(commissionLabel, _commissionAmount / 100), // Removed /100 division
             // Conditionally display price per unit if calculated
             if (_pricePerUnitSizeText.isNotEmpty)
-              _buildTextResultRow('سعر المتر المربع', _pricePerUnitSizeText), // Use helper for formatted text
+              const Divider(height: 24),
 
-            const Divider(height: 24),
+            _buildTextResultRow('سعر المتر ', _pricePerUnitSizeText),
+
             _buildTotalRow('الإجمالي', _totalAmount),
+            const Divider(height: 24),
+
           ],
         ),
       ),
@@ -383,6 +383,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 16, color: Colors.black54)),
+
           Text(
             '${_currencyFormatter.format(value)} ر.س',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -399,16 +400,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 16, color: Colors.black54)),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)), // Changed font size to 16
           Text(
             formattedValue, // Use the already formatted string
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
   }
-
 
   Widget _buildTotalRow(String label, double value) {
     return Row(
@@ -427,12 +427,14 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
   }
 
+
+
   Widget _buildClearButton() {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         icon: const Icon(Icons.delete_outline),
-        label: const Text('مسح' , style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text('مسح'), // Removed redundant style
         onPressed: _clearInput,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red,

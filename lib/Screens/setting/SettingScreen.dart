@@ -28,8 +28,8 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   void initState() {
     super.initState();
     // Initialize controllers and state with the values from the main screen
-    _taxController = TextEditingController(text: (widget.initialTaxRate * 100).toStringAsFixed(1));
-    _commissionController = TextEditingController(text: (widget.initialCommissionRate * 100).toStringAsFixed(1));
+    _taxController = TextEditingController(text: (widget.initialTaxRate ).toStringAsFixed(1));
+    _commissionController = TextEditingController(text: (widget.initialCommissionRate ).toStringAsFixed(1));
     _isTaxExempt = widget.isTaxExempt;
   }
 
@@ -44,8 +44,8 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   void _saveSettings() {
     final newSettings = CalculatorSettings(
       // Convert percentage string back to a decimal value
-      taxRate: (double.tryParse(_taxController.text) ?? 0) / 100,
-      commissionRate: (double.tryParse(_commissionController.text) ?? 0) / 100,
+      taxRate: (double.tryParse(_taxController.text) ?? 0) ,
+      commissionRate: (double.tryParse(_commissionController.text) ?? 0) ,
       isTaxExempt: _isTaxExempt,
     );
     // Pop the sheet and return the new settings object
