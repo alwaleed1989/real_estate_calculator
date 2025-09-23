@@ -1,9 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Required for TextInputFormatter
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../setting/SettingScreen.dart';
-import '../setting/setting.dart';
+import 'package:real_estate_calculator/Screens/setting/SettingScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Required for SharedPreferences
+import '../setting/SettingScreen.dart'; // Removed: Assuming '../setting/setting.dart' is sufficient
+import '../setting/setting.dart'; // Corrected import for your settings.dart
+import 'calculator_methods.dart'; // Assuming this exists and is correct
+
+class MaxValueTextInputFormatter extends TextInputFormatter {
+  final double maxValue;
+  final int decimalDigits;
+
+  MaxValueTextInputFormatter({this.maxValue = double.infinity, this.decimalDigits = 2});
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    final RegExp regex = RegExp(r'^\d*\.?\d{0,' + decimalDigits.toString() + r'}$');
+    if (!regex.hasMatch(newValue.text)) {
+      return oldValue;
+    }
+
+    final double? parsedValue = double.tryParse(newValue.text);
+
+    if (parsedValue != null && parsedValue > maxValue) {
+      return oldValue;
+    }
+
+    return newValue;
+  }
+}
+
 
 class RealEstateCalculatorApp extends StatelessWidget {
   const RealEstateCalculatorApp({super.key});
@@ -26,7 +61,6 @@ class RealEstateCalculatorApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.grey[50],
         textTheme: GoogleFonts.tajawalTextTheme(Theme.of(context).textTheme),
-        // Define a modern style for the bottom sheet
         bottomSheetTheme: const BottomSheetThemeData(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -48,6 +82,7 @@ class CalculatorScreen extends StatefulWidget {
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final _amountController = TextEditingController();
+  final _sizeassetController = TextEditingController(); // Renamed for consistency
   final _currencyFormatter = NumberFormat("#,##0.00", "ar_SA");
 
   // State variables for calculations
@@ -56,9 +91,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   double _commissionAmount = 0.0;
   double _totalAmount = 0.0;
   bool _showResults = false;
+  String _pricePerUnitSizeText = ""; // Changed to String, initialized as empty
 
   // --- SETTINGS STATE ---
-  // Default settings values
   double _taxRate = 0.05; // 5%
   double _commissionRate = 0.025; // 2.5%
   bool _isTaxExempt = false;
@@ -66,13 +101,38 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   void initState() {
     super.initState();
-    _amountController.addListener(_calculate);
+    // Load settings from SharedPreferences
+    _loadSettings();
+    // Use a single listener for both controllers to trigger full recalculation
+    _amountController.addListener(_recalculateAll);
+    _sizeassetController.addListener(_recalculateAll);
   }
 
   @override
   void dispose() {
+    // Remove listeners before disposing controllers
+    _amountController.removeListener(_recalculateAll);
+    _sizeassetController.removeListener(_recalculateAll);
     _amountController.dispose();
-    super.dispose();
+    _sizeassetController.dispose();
+    super.dispose(); // Only one super.dispose() call
+  }
+
+  // Method to load settings from shared preferences
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _taxRate = prefs.getDouble('vat_percentage') ?? 0.05;
+      _commissionRate = prefs.getDouble('pursuit_fee_percentage') ?? 0.025;
+      _isTaxExempt = prefs.getBool('is_tax_exempt') ?? false;
+    });
+    _recalculateAll(); // Recalculate after loading settings
+  }
+
+  // Combined method to trigger all calculations
+  void _recalculateAll() {
+    _calculate(); // Updates _baseAmount, _taxAmount, _commissionAmount, _totalAmount
+    _calculatePricePerUnit(); // Uses the updated _totalAmount
   }
 
   // Updated calculation logic to use settings state
@@ -94,19 +154,51 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         _totalAmount = 0.0;
         _showResults = false;
       }
+      // _calculatePricePerUnit() will be called by _recalculateAll
+    });
+  }
+
+  void _calculatePricePerUnit() {
+    final sizeText = _sizeassetController.text; // Use the correct controller
+    final sizeValue = double.tryParse(sizeText);
+
+    final currentTotalAmount = _totalAmount; // Use the already calculated total
+
+    setState(() {
+      if (sizeValue != null && sizeValue > 0 && currentTotalAmount > 0) {
+        final pricePerUnit = currentTotalAmount / sizeValue;
+
+        // Formatter for the price per unit
+        final unitPriceFormatter = NumberFormat.currency(
+          locale: 'ar_SA',
+          symbol: 'ر.س', // Correct currency symbol
+          decimalDigits: 2,
+        );
+        _pricePerUnitSizeText = "${unitPriceFormatter.format(pricePerUnit)} / متر مربع"; // Corrected suffix
+      } else {
+        _pricePerUnitSizeText = ""; // Clear if inputs are invalid
+      }
     });
   }
 
   void _clearInput() {
     _amountController.clear();
+    _sizeassetController.clear(); // Clear the size controller too
+    setState(() {
+      _baseAmount = 0.0;
+      _taxAmount = 0.0;
+      _commissionAmount = 0.0;
+      _totalAmount = 0.0;
+      _showResults = false;
+      _pricePerUnitSizeText = ""; // Reset price per unit text
+    });
   }
 
   // --- Method to open settings ---
   void _openSettings() async {
-    // Show the modal bottom sheet and wait for a result
     final newSettings = await showModalBottomSheet<CalculatorSettings>(
       context: context,
-      isScrollControlled: true, // Important for keyboard handling
+      isScrollControlled: true,
       builder: (context) => SettingsBottomSheet(
         initialTaxRate: _taxRate,
         initialCommissionRate: _commissionRate,
@@ -114,22 +206,19 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       ),
     );
 
-    // If the user saved new settings, update the state and recalculate
     if (newSettings != null) {
       setState(() {
         _taxRate = newSettings.taxRate;
         _commissionRate = newSettings.commissionRate;
         _isTaxExempt = newSettings.isTaxExempt;
       });
-      _calculate(); // Recalculate with new rates
+      _recalculateAll(); // Recalculate with new rates
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // resizeToAvoidBottomInset is set to false to prevent the UI from resizing when keyboard appears,
-      // as we are handling it with SingleChildScrollView.
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('حاسبة العقار', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
@@ -139,7 +228,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: Colors.grey[600]),
-            onPressed: _openSettings, // Open settings on tap
+            onPressed: _openSettings,
           ),
         ],
       ),
@@ -147,7 +236,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            // The main content is wrapped in Expanded and SingleChildScrollView to make it scrollable.
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -161,10 +249,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 ),
               ),
             ),
-            // The clear button is kept outside the scroll view to be always visible at the bottom.
             _buildClearButton(),
             const SizedBox(height: 15),
-
           ],
         ),
       ),
@@ -206,9 +292,38 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 borderSide: BorderSide.none,
               ),
               hintText: '0',
-              suffixText: 'ر.س',
+              suffixText: 'ر.س ',
               suffixStyle: TextStyle(fontSize: 18, color: Colors.grey[500]),
             ),
+            inputFormatters: [
+              MaxValueTextInputFormatter(maxValue: 10000000.0, decimalDigits: 2),
+            ],
+          ),
+          const SizedBox(height: 24), // Spacing between amount and size fields
+          const Text(
+            'مساحة العقار',
+            style: TextStyle(fontSize: 16, color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _sizeassetController, // Use the corrected controller name
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.left,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              hintText: '0',
+              suffixText: 'متر ', // Corrected unit suffix
+              suffixStyle: TextStyle(fontSize: 18, color: Colors.grey[500]),
+            ),
+            inputFormatters: [
+              MaxValueTextInputFormatter(maxValue: 10000.0, decimalDigits: 2), // Example max for size
+            ],
           ),
         ],
       ),
@@ -219,6 +334,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     // Determine the tax label based on exemption status
     final taxLabel = _isTaxExempt ? 'الضريبة (معفي)' : 'الضريبة (${(_taxRate * 100).toStringAsFixed(1)}%)';
     final commissionLabel = 'السعي (${(_commissionRate * 100).toStringAsFixed(1)}%)';
+    // Removed old SizeLabel which had a syntax error
+    // Now _pricePerUnitSizeText will be displayed directly if it's not empty
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 400),
@@ -247,6 +364,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             _buildResultRow('المبلغ الأساسي', _baseAmount),
             _buildResultRow(taxLabel, _taxAmount),
             _buildResultRow(commissionLabel, _commissionAmount),
+            // Conditionally display price per unit if calculated
+            if (_pricePerUnitSizeText.isNotEmpty)
+              _buildTextResultRow('سعر المتر المربع', _pricePerUnitSizeText), // Use helper for formatted text
+
             const Divider(height: 24),
             _buildTotalRow('الإجمالي', _totalAmount),
           ],
@@ -271,6 +392,24 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
   }
 
+  // New helper widget to display a row with a label and a pre-formatted text value
+  Widget _buildTextResultRow(String label, String formattedValue) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 16, color: Colors.black54)),
+          Text(
+            formattedValue, // Use the already formatted string
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   Widget _buildTotalRow(String label, double value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -289,39 +428,22 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   Widget _buildClearButton() {
-    // return SizedBox(
-    //   width: double.infinity,
-    //   child: TextButton.icon(
-    //     icon: const Icon(Icons.delete_outline),
-    //     label: const Text('مسح'),
-    //     onPressed: _clearInput,
-    //     style: TextButton.styleFrom(
-    //       foregroundColor: Colors.red,
-    //       padding: const EdgeInsets.symmetric(vertical: 12),
-    //       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-    //     ),
-    //   ),
-    // );
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         icon: const Icon(Icons.delete_outline),
-        label: const Text('مسح'),
-        onPressed: _clearInput, // يجب أن تكون هذه الدالة معرفة في الكلاس الخاص بك
+        label: const Text('مسح' , style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: _clearInput,
         style: ElevatedButton.styleFrom(
-          // لون الخلفية للزر
           backgroundColor: Colors.red,
-          // لون الأيقونة والنص
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 12),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          // هذا السطر يجعله مستطيلاً بحواف دائرية قليلاً
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.0),
           ),
         ),
       ),
     );
-
   }
 }
