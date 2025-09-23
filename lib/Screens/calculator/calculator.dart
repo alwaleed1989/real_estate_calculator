@@ -3,6 +3,7 @@ import 'package:flutter/services.dart'; // Required for TextInputFormatter
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:real_estate_calculator/Screens/Info/infoScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Required for SharedPreferences
 import '../setting/SettingScreen.dart';
 import '../setting/setting.dart'; // Corrected import for your settings.dart
@@ -224,11 +225,19 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.info_outline, color: Colors.black),
+            tooltip: 'Menu', // Tooltip for accessibility
+            onPressed: () {
+              showModalBottomSheet(context: context, builder: (context) => Infoscreen(),);
+            },
+          ),
         actions: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: Colors.grey[600]),
             onPressed: _openSettings,
           ),
+
         ],
       ),
       body: Padding(
