@@ -173,7 +173,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           symbol: 'ر.س', // Correct currency symbol
           decimalDigits: 2,
         );
-        _pricePerUnitSizeText = "${unitPriceFormatter.format(pricePerUnit)} / متر مربع"; // Corrected suffix
+        _pricePerUnitSizeText = "${unitPriceFormatter.format(pricePerUnit)} /  متر "; // Corrected suffix
       } else {
         _pricePerUnitSizeText = ""; // Clear if inputs are invalid
       }
@@ -317,7 +317,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 borderSide: BorderSide.none,
               ),
               hintText: '0',
-              suffixText: 'متر مربع', // Corrected unit suffix, removed extra space
+              suffixText: '   متر', // Corrected unit suffix, removed extra space
               suffixStyle: TextStyle(fontSize: 18, color: Colors.grey[500]),
             ),
             inputFormatters: [
@@ -365,10 +365,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             if (_pricePerUnitSizeText.isNotEmpty)
               const Divider(height: 24),
 
-            _buildTextResultRow('سعر المتر ', _pricePerUnitSizeText),
+            _buildTextResultRow('سعر المتر من المبلغ الاساسي', _pricePerUnitSizeText),
+            const Divider(height: 24),
 
             _buildTotalRow('الإجمالي', _totalAmount),
-            const Divider(height: 24),
 
           ],
         ),
