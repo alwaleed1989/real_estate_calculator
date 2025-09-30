@@ -44,8 +44,8 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   void _saveSettings() {
     final newSettings = CalculatorSettings(
       // Convert percentage string back to a decimal value
-      taxRate: (double.tryParse(_taxController.text) ?? 0) ,
-      commissionRate: (double.tryParse(_commissionController.text) ?? 0) ,
+      taxRate: (double.tryParse(_taxController.text) ?? 2) ,
+      commissionRate: (double.tryParse(_commissionController.text) ?? 2) ,
       isTaxExempt: _isTaxExempt,
     );
     // Pop the sheet and return the new settings object

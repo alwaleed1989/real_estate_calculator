@@ -123,8 +123,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _taxRate = prefs.getDouble('vat_percentage') ?? 0.05;
-      _commissionRate = prefs.getDouble('pursuit_fee_percentage') ?? 0.025;
+      _taxRate = prefs.getDouble('vat_percentage') ?? 5;
+      _commissionRate = prefs.getDouble('pursuit_fee_percentage') ?? 2.5;
       _isTaxExempt = prefs.getBool('is_tax_exempt') ?? false;
     });
     _recalculateAll(); // Recalculate after loading settings
@@ -252,6 +252,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                     _buildInputCard(),
                     const SizedBox(height: 24),
                     _buildResultsCard(),
+
                     const SizedBox(height: 16),
                   ],
                 ),
