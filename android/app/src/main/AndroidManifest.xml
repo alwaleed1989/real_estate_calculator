@@ -1,45 +1,54 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      ## Required Permissions ##
+      - INTERNET: This is essential for the Google Mobile Ads SDK to fetch ads.
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="حاسبة العقار"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:name="com.example.real_estate_calculator.MainApplication"
+        android:icon="@mipmap/ic_launcher"
+        android:label="حاسبة العقار">
+
+        <!--
+          ## AdMob Application ID ##
+          This meta-data tag is required for AdMob to initialize correctly.
+          The value below is a TEST ID for development. Remember to replace it
+          with your REAL AdMob App ID before publishing your application.
+        -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
+
+            <!-- This meta-data is used by Flutter to handle the theme transition -->
+            <!-- from the native splash screen to the Flutter app. -->
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"
+                />
+
+            <!-- This intent-filter designates this activity as the entry point of -->
+            <!-- the app, making it appear on the device's home screen. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- Don't delete the meta-data below.
-             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+
+        <!-- Do not delete this. It is used by the Flutter tool to wire up plugins. -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
-        </intent>
-    </queries>
 </manifest>
