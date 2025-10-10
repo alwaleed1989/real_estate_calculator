@@ -1,4 +1,4 @@
-
+// File: lib/Screens/setting/SettingScreen.dart
 
 import 'package:flutter/material.dart';
 import 'package:real_estate_calculator/Screens/setting/setting.dart';
@@ -24,12 +24,12 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
   late TextEditingController _commissionController;
   late bool _isTaxExempt;
 
+  // ✔️ CORRECTED: Converts decimal rate to percentage for display
   @override
   void initState() {
     super.initState();
-    // Initialize controllers and state with the values from the main screen
-    _taxController = TextEditingController(text: (widget.initialTaxRate ).toStringAsFixed(1));
-    _commissionController = TextEditingController(text: (widget.initialCommissionRate ).toStringAsFixed(1));
+    _taxController = TextEditingController(text: (widget.initialTaxRate * 100).toStringAsFixed(1));
+    _commissionController = TextEditingController(text: (widget.initialCommissionRate * 100).toStringAsFixed(1));
     _isTaxExempt = widget.isTaxExempt;
   }
 
@@ -40,24 +40,23 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
     super.dispose();
   }
 
-  // Save and close the sheet, passing the new settings back
+  // ✔️ CORRECTED: Converts percentage input back to decimal for calculations
   void _saveSettings() {
+    final double taxRateFromInput = (double.tryParse(_taxController.text) ?? 5.0) / 100;
+    final double commissionRateFromInput = (double.tryParse(_commissionController.text) ?? 2.5) / 100;
+
     final newSettings = CalculatorSettings(
-      // Convert percentage string back to a decimal value
-      taxRate: (double.tryParse(_taxController.text) ?? 2) ,
-      commissionRate: (double.tryParse(_commissionController.text) ?? 2) ,
+      taxRate: taxRateFromInput,
+      commissionRate: commissionRateFromInput,
       isTaxExempt: _isTaxExempt,
     );
-    // Pop the sheet and return the new settings object
     Navigator.of(context).pop(newSettings);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Wrap the content in a SingleChildScrollView to prevent overflow when the keyboard appears.
     return SingleChildScrollView(
       child: Padding(
-        // Add padding to the content and also to account for the keyboard.
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom + 16,
           left: 16,
@@ -65,7 +64,7 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
           top: 16,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // Make the sheet only as tall as its content
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -77,13 +76,12 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
             ),
             const SizedBox(height: 20),
 
-            // --- Tax Settings ---
             const Text('الضريبة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             _buildTextField(
                 controller: _taxController,
                 label: 'نسبة الضريبة',
-                enabled: !_isTaxExempt // Disable if tax is exempt
+                enabled: !_isTaxExempt
             ),
             SwitchListTile(
               title: const Text('معفي من الضريبه'),
@@ -99,7 +97,6 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
 
             const Divider(height: 32),
 
-            // --- Commission Settings ---
             const Text('السعي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             _buildTextField(
@@ -110,7 +107,6 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
 
             const SizedBox(height: 24),
 
-            // --- Save Button ---
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -135,7 +131,6 @@ class _SettingsBottomSheetState extends State<SettingsBottomSheet> {
     );
   }
 
-  // Helper widget for creating styled text fields
   Widget _buildTextField({required TextEditingController controller, required String label, required bool enabled}) {
     return TextField(
       controller: controller,

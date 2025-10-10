@@ -1,44 +1,17 @@
+// File: lib/Screens/calculator_screen.dart
+
+import 'package:currency_text_input_formatter/currency_text_input_formatter.dart'; // ✔️ ADDED
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Required for TextInputFormatter
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:real_estate_calculator/Screens/Info/infoScreen.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Required for SharedPreferences
+import 'package:shared_preferences/shared_preferences.dart';
 import '../setting/SettingScreen.dart';
-import '../setting/setting.dart'; // Corrected import for your settings.dart
-// import 'calculator_methods.dart'; // Assuming this exists and is correct, but not directly used here
+import '../setting/setting.dart';
 
-// MaxValueTextInputFormatter class (as provided previously)
-class MaxValueTextInputFormatter extends TextInputFormatter {
-  final double maxValue;
-  final int decimalDigits;
-
-  MaxValueTextInputFormatter({this.maxValue = double.infinity, this.decimalDigits = 2});
-
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue,
-      TextEditingValue newValue,
-      ) {
-    if (newValue.text.isEmpty) {
-      return newValue;
-    }
-
-    final RegExp regex = RegExp(r'^\d*\.?\d{0,' + decimalDigits.toString() + r'}$');
-    if (!regex.hasMatch(newValue.text)) {
-      return oldValue;
-    }
-
-    final double? parsedValue = double.tryParse(newValue.text);
-
-    if (parsedValue != null && parsedValue > maxValue) {
-      return oldValue;
-    }
-
-    return newValue;
-  }
-}
+// ✔️ REMOVED: The MaxValueTextInputFormatter class is no longer needed.
 
 class RealEstateCalculatorApp extends StatelessWidget {
   const RealEstateCalculatorApp({super.key});
@@ -82,72 +55,78 @@ class CalculatorScreen extends StatefulWidget {
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final _amountController = TextEditingController();
-  final _sizeassetController = TextEditingController(); // Renamed for consistency
+  final _sizeassetController = TextEditingController();
   final _currencyFormatter = NumberFormat("#,##0.00", "ar_SA");
 
-  // State variables for calculations
+  // ✔️ ADDED: Define the formatter as a state variable
+  final CurrencyTextInputFormatter _amountFormatter = CurrencyTextInputFormatter.currency(
+    locale: 'ar_SA',
+    decimalDigits: 0,
+    symbol: 'ر.س ',
+    // enableGrouping: true,
+  );
+
   double _baseAmount = 0.0;
   double _taxAmount = 0.0;
   double _commissionAmount = 0.0;
   double _totalAmount = 0.0;
   bool _showResults = false;
-  String _pricePerUnitSizeText = ""; // Changed to String, initialized as empty
+  String _pricePerUnitSizeText = "";
 
-  // --- SETTINGS STATE ---
-  // Default values set here and also in _loadSettings as fallbacks
-  double _taxRate = 0.05; // Default 5%
-  double _commissionRate = 0.025; // Default 2.5%
+  double _taxRate = 0.05; // 5%
+  double _commissionRate = 0.025; // 2.5%
   bool _isTaxExempt = false;
 
   @override
   void initState() {
     super.initState();
-    // Load settings from SharedPreferences
     _loadSettings();
-    // Use a single listener for both controllers to trigger full recalculation
     _amountController.addListener(_recalculateAll);
     _sizeassetController.addListener(_recalculateAll);
   }
 
   @override
   void dispose() {
-    // Remove listeners before disposing controllers
     _amountController.removeListener(_recalculateAll);
     _sizeassetController.removeListener(_recalculateAll);
     _amountController.dispose();
     _sizeassetController.dispose();
-    super.dispose(); // Only one super.dispose() call
+    super.dispose();
   }
 
-  // Method to load settings from shared preferences
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _taxRate = prefs.getDouble('vat_percentage') ?? 5;
-      _commissionRate = prefs.getDouble('pursuit_fee_percentage') ?? 2.5;
+      _taxRate = prefs.getDouble('vat_percentage') ?? 0.05;
+      _commissionRate = prefs.getDouble('pursuit_fee_percentage') ?? 0.025;
       _isTaxExempt = prefs.getBool('is_tax_exempt') ?? false;
     });
-    _recalculateAll(); // Recalculate after loading settings
+    _recalculateAll();
   }
 
-  // Combined method to trigger all calculations
+  Future<void> _saveSettingsToPrefs(CalculatorSettings settings) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('vat_percentage', settings.taxRate);
+    await prefs.setDouble('pursuit_fee_percentage', settings.commissionRate);
+    await prefs.setBool('is_tax_exempt', settings.isTaxExempt);
+  }
+
   void _recalculateAll() {
-    _calculate(); // Updates _baseAmount, _taxAmount, _commissionAmount, _totalAmount
-    _calculatePricePerUnit(); // Uses the updated _totalAmount
+    _calculate();
+    _calculatePricePerUnit();
   }
 
-  // Updated calculation logic to use settings state
+  // ✔️ MODIFIED: Get the unformatted value from the formatter
   void _calculate() {
-    final amountText = _amountController.text;
-    final baseValue = double.tryParse(amountText) ?? 0;
+    // This now correctly reads the number from the formatted text
+    final baseValue = _amountFormatter.getUnformattedValue().toDouble();
 
     setState(() {
       _baseAmount = baseValue;
       if (_baseAmount > 0) {
-        // Calculate tax only if not exempt
         _taxAmount = _isTaxExempt ? 0 : _baseAmount * _taxRate;
         _commissionAmount = _baseAmount * _commissionRate;
-        _totalAmount = _baseAmount + _taxAmount /100 + _commissionAmount / 100;
+        _totalAmount = _baseAmount + _taxAmount + _commissionAmount;
         _showResults = true;
       } else {
         _taxAmount = 0.0;
@@ -159,42 +138,38 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _calculatePricePerUnit() {
-    final sizeText = _sizeassetController.text; // Use the correct controller
+    final sizeText = _sizeassetController.text;
     final sizeValue = double.tryParse(sizeText);
-
-    final currentTotalAmount = _totalAmount; // Use the already calculated total
+    final currentTotalAmount = _totalAmount;
 
     setState(() {
       if (sizeValue != null && sizeValue > 0 && currentTotalAmount > 0) {
         final pricePerUnit = currentTotalAmount / sizeValue;
-
-        // Formatter for the price per unit
         final unitPriceFormatter = NumberFormat.currency(
           locale: 'ar_SA',
-          symbol: 'ر.س', // Correct currency symbol
+          symbol: 'ر.س',
           decimalDigits: 2,
         );
-        _pricePerUnitSizeText = "${unitPriceFormatter.format(pricePerUnit)} /  متر "; // Corrected suffix
+        _pricePerUnitSizeText = "${unitPriceFormatter.format(pricePerUnit)} /  متر ";
       } else {
-        _pricePerUnitSizeText = ""; // Clear if inputs are invalid
+        _pricePerUnitSizeText = "";
       }
     });
   }
 
   void _clearInput() {
     _amountController.clear();
-    _sizeassetController.clear(); // Clear the size controller too
+    _sizeassetController.clear();
     setState(() {
       _baseAmount = 0.0;
       _taxAmount = 0.0;
       _commissionAmount = 0.0;
       _totalAmount = 0.0;
       _showResults = false;
-      _pricePerUnitSizeText = ""; // Reset price per unit text
+      _pricePerUnitSizeText = "";
     });
   }
 
-  // --- Method to open settings ---
   void _openSettings() async {
     final newSettings = await showModalBottomSheet<CalculatorSettings>(
       context: context,
@@ -207,12 +182,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
 
     if (newSettings != null) {
+      await _saveSettingsToPrefs(newSettings);
       setState(() {
         _taxRate = newSettings.taxRate;
         _commissionRate = newSettings.commissionRate;
         _isTaxExempt = newSettings.isTaxExempt;
       });
-      _recalculateAll(); // Recalculate with new rates
+      _recalculateAll();
     }
   }
 
@@ -225,19 +201,18 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.info_outline, color: Colors.black),
-            tooltip: 'Menu', // Tooltip for accessibility
-            onPressed: () {
-              showModalBottomSheet(context: context, builder: (context) => Infoscreen(),);
-            },
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.info_outline, color: Colors.black),
+          tooltip: 'Menu',
+          onPressed: () {
+            showModalBottomSheet(context: context, builder: (context) => Infoscreen(),);
+          },
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.settings_outlined, color: Colors.grey[600]),
             onPressed: _openSettings,
           ),
-
         ],
       ),
       body: Padding(
@@ -252,7 +227,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                     _buildInputCard(),
                     const SizedBox(height: 24),
                     _buildResultsCard(),
-
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -288,11 +262,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
           const SizedBox(height: 8),
+          // ✔️ MODIFIED: This TextField now uses the CurrencyTextInputFormatter
           TextField(
             controller: _amountController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: TextInputType.number,
             style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.left,
+            textAlign: TextAlign.right,
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.grey[100],
@@ -301,24 +276,24 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 borderSide: BorderSide.none,
               ),
               hintText: '0',
-              suffixText: 'ر.س', // Removed extra space
-              suffixStyle: TextStyle(fontSize: 18, color: Colors.grey[500]),
+              contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
             ),
             inputFormatters: [
-              MaxValueTextInputFormatter(maxValue: 10000000.0, decimalDigits: 2),
+              _amountFormatter,
             ],
           ),
-          const SizedBox(height: 24), // Spacing between amount and size fields
+          const SizedBox(height: 24),
           const Text(
             'مساحة العقار',
             style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
           const SizedBox(height: 8),
+          // ✔️ MODIFIED: Improved this TextField for consistency
           TextField(
-            controller: _sizeassetController, // Use the corrected controller name
+            controller: _sizeassetController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.left,
+            textAlign: TextAlign.right,
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.grey[100],
@@ -327,11 +302,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 borderSide: BorderSide.none,
               ),
               hintText: '0',
-              suffixText: '   متر', // Corrected unit suffix, removed extra space
+              suffixText: 'متر',
               suffixStyle: TextStyle(fontSize: 18, color: Colors.grey[500]),
             ),
             inputFormatters: [
-              MaxValueTextInputFormatter(maxValue: 10000.0, decimalDigits: 2), // Example max for size
+              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              LengthLimitingTextInputFormatter(10),
             ],
           ),
         ],
@@ -340,9 +316,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   Widget _buildResultsCard() {
-    // Determine the tax label based on exemption status
-    final taxLabel = _isTaxExempt ? 'الضريبة (معفي)' : 'الضريبة (${(_taxRate  ).toStringAsFixed(1)}%)'; // Corrected
-    final commissionLabel = 'السعي (${(_commissionRate ).toStringAsFixed(1)}%)'; // Corrected
+    final taxLabel = _isTaxExempt ? 'الضريبة (معفي)' : 'الضريبة (${(_taxRate * 100).toStringAsFixed(1)}%)';
+    final commissionLabel = 'السعي (${(_commissionRate * 100).toStringAsFixed(1)}%)';
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 400),
@@ -369,9 +344,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             ),
             const SizedBox(height: 16),
             _buildResultRow('المبلغ الأساسي', _baseAmount),
-            _buildResultRow(taxLabel, _taxAmount / 100),
-            _buildResultRow(commissionLabel, _commissionAmount / 100), // Removed /100 division
-            // Conditionally display price per unit if calculated
+            _buildResultRow(taxLabel, _taxAmount),
+            _buildResultRow(commissionLabel, _commissionAmount),
             if (_pricePerUnitSizeText.isNotEmpty)
               const Divider(height: 24),
 
@@ -379,7 +353,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             const Divider(height: 24),
 
             _buildTotalRow('الإجمالي', _totalAmount),
-
           ],
         ),
       ),
@@ -393,7 +366,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 16, color: Colors.black54)),
-
           Text(
             '${_currencyFormatter.format(value)} ر.س',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -403,16 +375,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
   }
 
-  // New helper widget to display a row with a label and a pre-formatted text value
   Widget _buildTextResultRow(String label, String formattedValue) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)), // Changed font size to 16
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
           Text(
-            formattedValue, // Use the already formatted string
+            formattedValue,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
@@ -437,14 +408,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
   }
 
-
-
   Widget _buildClearButton() {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         icon: const Icon(Icons.delete_outline),
-        label: const Text('مسح'), // Removed redundant style
+        label: const Text('مسح'),
         onPressed: _clearInput,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red,
