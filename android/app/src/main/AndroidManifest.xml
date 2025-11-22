@@ -17,9 +17,9 @@
           The value below is a TEST ID for development. Remember to replace it
           with your REAL AdMob App ID before publishing your application.
         -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+<!--        <meta-data-->
+<!--            android:name="com.google.android.gms.ads.APPLICATION_ID"-->
+<!--            android:value="ca-app-pub-3940256099942544~3347511713"/>-->
 
         <activity
             android:name=".MainActivity"

@@ -50,10 +50,30 @@ class Infoscreen extends StatelessWidget {
               ),
               const Divider(height: 30), // Increased height for more space
               const Text(
-                'تم عمل هذا التطبيق لتسهيل حساب العقارات داخل المملكة العربية السعودية، حيث يوفر أداة شاملة لحساب التكاليف والضرائب المرتبطة بشراء العقارات بكل سهولة وشفافية، مثل:\n\n'
+                'تم عمل هذا التطبيق لتسهيل حساب العقارات، حيث يوفر أداة شاملة لحساب التكاليف والضرائب المرتبطة بشراء العقارات بكل سهولة وشفافية، مثل:\n\n'
                     '• ضريبة التصرفات العقارية (5%)\n'
                     '• عمولة الوسيط أو السعي (2.5%)\n\n'
                     'في حال لديك ملاحظات لتحسين التطبيق، نأمل التواصل معنا عبر البريد الإلكتروني:',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+              ),
+
+              Divider(),
+
+              const Text('إخلاء مسؤولية',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 22,
+                  height: 1.5,
+                ),
+              ),
+
+              const Text('قد تختلف نسبه الضريبة و السعي من دولة الى اخرى . ان هذا التطبيق لا يتم من خلاله اي عمليات بيع او شراء من خلاله ، حيث يعتبر هذا التطبيق مساعد لاحتساب العقارات فقط',
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   color: Colors.black87,
@@ -69,7 +89,7 @@ class Infoscreen extends StatelessWidget {
                 child: const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Text(
-                    'dev.alwaleed@gmail.com',
+                    '',
                     textAlign: TextAlign.center, // Centered the email text
                     style: TextStyle(
                       fontSize: 18,
